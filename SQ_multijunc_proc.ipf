@@ -11,6 +11,15 @@ Variable theta
 	return pi*sin(theta/180*pi)^2//
 End
 
+// max concentraion
+Function Xmax()
+
+	NVAR vTheta_s=root:theta_s //sun semi-angle
+	variable fs=sin(vTheta_s)^2
+
+	return 1/fs
+End
+
 Function flux_E(E,T,F,mu)
 Variable E,T,F,mu
 
@@ -194,8 +203,18 @@ Variable E1,E2,T
 	return c/4*u_dE(E1,E2,T)	
 End
 
+// total power density (W/m^2)
+Function Ptot(Xc,Ts)
+Variable Xc,Ts
+
+	NVAR vTheta_s=root:theta_s //sun semi-angle
+	variable fs=sin(vTheta_s)^2
+
+	return Xc*fs*Lr_E(30,Ts)
+End
+
 // single-junction J-V absorbing within [E1,E2]
-Function J_V(V,E1,E2,Xc,Ts,Ta,n)
+Function J_V_1junc(V,E1,E2,Xc,Ts,Ta,n)
 Variable V,E1,E2,Xc,Ts,Ta,n
 
 	NVAR vTheta_s=root:theta_s //sun semi-angle
@@ -208,8 +227,8 @@ Variable V,E1,E2,Xc,Ts,Ta,n
 	return Jph-J0*(exp(V/(n*kB*Ta))-1)
 End
 
-// max single-junction V absorbing within [E1,E2]
-Function find_Vmax(E1,E2,Xc,Ts,Ta,n)
+// max-power single-junction V absorbing within [E1,E2]
+Function find_Vmax_1junc(E1,E2,Xc,Ts,Ta,n)
 Variable E1,E2,Xc,Ts,Ta,n
 
 	NVAR vTheta_s=root:theta_s //sun semi-angle
@@ -222,17 +241,17 @@ Variable E1,E2,Xc,Ts,Ta,n
 	if(E2<=E1)
 		return 0
 	endif
-	variable Pmax=V*J_V(V,E1,E2,Xc,Ts,Ta,n)
+	variable Pmax=V*J_V_1junc(V,E1,E2,Xc,Ts,Ta,n)
 	
 	variable iter=0
 	variable Vplus,Vminus
 	variable Pplus,Pminus
 	do
 		Vplus=V+dV
-		Pplus=Vplus*J_V(Vplus,E1,E2,Xc,Ts,Ta,n)
+		Pplus=Vplus*J_V_1junc(Vplus,E1,E2,Xc,Ts,Ta,n)
 
 		Vminus=V-dV
-		Pminus=Vminus*J_V(Vminus,E1,E2,Xc,Ts,Ta,n)
+		Pminus=Vminus*J_V_1junc(Vminus,E1,E2,Xc,Ts,Ta,n)
 	
 		variable improved=0
 		if(Pplus>Pmax)
@@ -257,36 +276,36 @@ Variable E1,E2,Xc,Ts,Ta,n
 	return V
 End
 
-Function find_Pmax(E1,E2,Xc,Ts,Ta,n)
+Function find_Pmax_1junc(E1,E2,Xc,Ts,Ta,n)
 Variable E1,E2,Xc,Ts,Ta,n
 
-	variable Vm=find_Vmax(E1,E2,Xc,Ts,Ta,n)
-	Variable Jm=J_V(Vm,E1,E2,Xc,Ts,Ta,n)
+	variable Vm=find_Vmax_1junc(E1,E2,Xc,Ts,Ta,n)
+	Variable Jm=J_V_1junc(Vm,E1,E2,Xc,Ts,Ta,n)
 	return Vm*Jm
 End
 
-// double-junction J-V absorbing absorbing with [E1,E2] and [E2,inf]
-Function J_V_2junc(V,E1,E2,Xc,Ts,Ta,n1,n2)
+// double-junction, two-contact J-V absorbing absorbing with [E1,E2] and [E2,inf]
+Function J_V_2junc_2cont(V,E1,E2,Xc,Ts,Ta,n1,n2)
 Variable V,E1,E2,Xc,Ts,Ta,n1,n2
 	
 	variable J=0	
 	variable V1=E1/2
 	variable dV1=0.01
 	variable alpha=0.5
-	variable J1=J_V(V1,E1,E2,Xc,Ts,Ta,n1)
-	variable J2=J_V(V-V1,E2,100,Xc,Ts,Ta,n2)			
+	variable J1=J_V_1junc(V1,E1,E2,Xc,Ts,Ta,n1)
+	variable J2=J_V_1junc(V-V1,E2,100,Xc,Ts,Ta,n2)			
 	variable dJ=J1-J2
 
 	variable iter=0
 	do
 		variable V1_plus=V1+dV1/2
-		J1=J_V(V1_plus,E1,E2,Xc,Ts,Ta,n1)
-		J2=J_V(V-V1_plus,E2,100,Xc,Ts,Ta,n2)
+		J1=J_V_1junc(V1_plus,E1,E2,Xc,Ts,Ta,n1)
+		J2=J_V_1junc(V-V1_plus,E2,100,Xc,Ts,Ta,n2)
 		variable dJ_plus=J1-J2
 		
 		variable V1_minus=V1-dV1/2
-		J1=J_V(V1_minus,E1,E2,Xc,Ts,Ta,n1)
-		J2=J_V(V-V1_minus,E2,100,Xc,Ts,Ta,n2)
+		J1=J_V_1junc(V1_minus,E1,E2,Xc,Ts,Ta,n1)
+		J2=J_V_1junc(V-V1_minus,E2,100,Xc,Ts,Ta,n2)
 		variable dJ_minus=J1-J2
 		
 		variable improved=0
@@ -323,25 +342,25 @@ Variable V,E1,E2,Xc,Ts,Ta,n1,n2
 	if(iter >1000)
 		Print "J: no convergence on iter", iter
 	endif
-	return J_V(V1,E1,E2,Xc,Ts,Ta,n1)
+	return J_V_1junc(V1,E1,E2,Xc,Ts,Ta,n1)
 End
 
 //
-Function find_Vmax_2junc(E1,E2,Xc,Ts,Ta,n1,n2)
+Function find_Vmax_2junc_2cont(E1,E2,Xc,Ts,Ta,n1,n2)
 Variable E1,E2,Xc,Ts,Ta,n1,n2
 
 	variable V=E1+(E2-E1)/2	
 	variable dV=1e-3
 	
-	variable Pmax=V*J_V_2junc(V,E1,E2,Xc,Ts,Ta,n1,n2)
+	variable Pmax=V*J_V_2junc_2cont(V,E1,E2,Xc,Ts,Ta,n1,n2)
 		
 	variable iter=0
 	do
 		variable Vplus=V+dV
-		variable Pplus=Vplus*J_V_2junc(Vplus,E1,E2,Xc,Ts,Ta,n1,n2)
+		variable Pplus=Vplus*J_V_2junc_2cont(Vplus,E1,E2,Xc,Ts,Ta,n1,n2)
 
 		variable Vminus=V-dV
-		variable Pminus=Vminus*J_V_2junc(Vminus,E1,E2,Xc,Ts,Ta,n1,n2)
+		variable Pminus=Vminus*J_V_2junc_2cont(Vminus,E1,E2,Xc,Ts,Ta,n1,n2)
 	
 		variable improved=0
 		if(Pplus>Pmax)
@@ -369,38 +388,42 @@ Variable E1,E2,Xc,Ts,Ta,n1,n2
 	return V
 End
 
-// max concentraion
-Function Xmax()
-
-	NVAR vTheta_s=root:theta_s //sun semi-angle
-	variable fs=sin(vTheta_s)^2
-
-	return 1/fs
-End
-
-// total power density (W/m^2)
-Function Ptot(Xc,Ts)
-Variable Xc,Ts
-
-	NVAR vTheta_s=root:theta_s //sun semi-angle
-	variable fs=sin(vTheta_s)^2
-
-	return Xc*fs*Lr_E(30,Ts)
-End
-
-Function find_Pmax_2junc(E1,E2,Xc,Ts,Ta,n1,n2)
+Function find_Pmax_2junc_2cont(E1,E2,Xc,Ts,Ta,n1,n2)
 Variable E1,E2,Xc,Ts,Ta,n1,n2
 
 	variable Pref=Ptot(Xc,Ts)
 	variable Pm=0,eta=0
 	if(E1<E2)
-		variable Vm=find_Vmax_2junc(E1,E2,Xc,Ts,Ta,n1,n2)
-		variable Jm=J_V_2junc(Vm,E1,E2,Xc,Ts,Ta,n1,n2)
+		variable Vm=find_Vmax_2junc_2cont(E1,E2,Xc,Ts,Ta,n1,n2)
+		variable Jm=J_V_2junc_2cont(Vm,E1,E2,Xc,Ts,Ta,n1,n2)
 		Pm=Vm*Jm
 		eta=Pm/Pref
 		Print "E1, E2: ",E1,E2,", J, V, P, eta: ",Jm,Vm,Pm,eta
 	else
 		 Print "E1>=E2: ",E1,E2,", J, V, P, eta: ",0,0,Pm,eta
 	endif
+	return Pm
+End
+
+Function find_Pmax_2junc_4cont(E1,E2,Xc,Ts,Ta,n1,n2)
+Variable E1,E2,Xc,Ts,Ta,n1,n2
+
+	variable Pref=Ptot(Xc,Ts)
+	variable P1m=0,P2m=0
+	variable Pm=0,eta=0
+	if(E1<E2)
+		variable V1m=find_Vmax_1junc(E1,E2,Xc,Ts,Ta,n1)
+		variable J1m=J_V_1junc(V1m,E1,E2,Xc,Ts,Ta,n1)
+		P1m=V1m*J1m
+	endif
+	
+	variable V2m=find_Vmax_1junc(E2,100,Xc,Ts,Ta,n2)
+	variable J2m=J_V_1junc(V2m,E2,100,Xc,Ts,Ta,n2)
+	P2m=V2m*J2m
+
+	Pm=P1m+P2m
+	eta=Pm/Pref
+	Print "E1, E2: ",E1,E2,", P1, P2, Ptot, eta: ",P1m,P2m,Pm,eta
+
 	return Pm
 End
