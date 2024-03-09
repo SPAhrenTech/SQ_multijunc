@@ -240,7 +240,7 @@ Variable Xc,Ts,Ta,n
 	return P
 End
 
-// single-junction
+// optimization: single-junction power
 Function wP_1junc(wPars,V)
 	Wave wPars
 	Variable V
@@ -256,9 +256,9 @@ Function wP_1junc(wPars,V)
 	return P
 End
 
-// max-power single-junction V absorbing within [E1,E2]
-function findV_maxP_1junc(E1,E2,Xc,Ts,Ta,n,Vm)
-Variable E1,E2,Xc,Ts,Ta,n, Vm
+// max-power single-junction V absorbing within [Eg,Ec]
+function findV_maxP_1junc(Eg,Ec,Xc,Ts,Ta,n)
+Variable Eg,Ec,Xc,Ts,Ta,n
 
 	string sP="root:"
 
@@ -267,229 +267,119 @@ Variable E1,E2,Xc,Ts,Ta,n, Vm
 	wTempPars[1]=Ts
 	wTempPars[2]=Ta
 	wTempPars[3]=n //n1
-	wTempPars[4]=E1
-	wTempPars[5]=E2
+	wTempPars[4]=Eg
+	wTempPars[5]=Ec
 
 	Make/D/O/N=1 $sP+"tempData"/wave=wTempData
-	wTempData[0]=Vm
+	wTempData[0]=Eg/2
 
 	Optimize/A/X=wTempData/S=1 wP_1junc,wTempPars
-	Vm=V_maxloc
-
 	KillWaves $sP+"tempData"
+
+	variable Vm=V_maxloc
 	return Vm
 End
 
 function doFindMaxP_1junc()
 	string sP="root:"
 	
-	wave wSpectPars=$sP+"spectPars"
-	wave wDevice1Pars=$sP+"device1Pars"
-	wave wEgPars=$sP+"EgPars"
+	wave w_1juncPars=$sP+"pars_1junc"
 
-	variable Xc=wSpectPars[0]
-	variable Ts=wSpectPars[1]
-	variable Ta=wSpectPars[2]	
-	variable n=wDevice1Pars[0]
-	variable Vm=wDevice1Pars[1]
-	variable E1=wEgPars[0]
-	variable E2=wEgPars[1]
-
-	Vm=findV_maxP_1junc(E1,E2,Xc,Ts,Ta,n,Vm)	
-	variable Jm=J_1junc(Vm,E1,E2,Xc,Ts,Ta,n)
+	variable Xc=w_1juncPars[0]
+	variable Ts=w_1juncPars[1]
+	variable Ta=w_1juncPars[2]	
+	variable n=w_1juncPars[3]
+	variable Eg=w_1juncPars[4]
+	variable Ec=w_1juncPars[5]
+		
+	variable Vm=findV_maxP_1junc(Eg,Ec,Xc,Ts,Ta,n)	
+	variable Jm=J_1junc(Vm,Eg,Ec,Xc,Ts,Ta,n)
 	variable Pm=Vm*Jm	
 	
-	wDevice1Pars[1]=Vm
-	wDevice1Pars[2]=Jm
-	wDevice1Pars[3]=Pm
+	w_1juncPars[6]=Vm
+	w_1juncPars[7]=Jm
+	w_1juncPars[8]=Pm
 End
 
 Macro max_power_single_junction()
 	doFindMaxP_1junc()
 End
 
-// double-junction, two-contact J-V absorbing absorbing with [E1,E2] and [E2,inf]
-Function J_V_2junc_2cont(V,E1,E2,Xc,Ts,Ta,n1,n2)
-Variable V,E1,E2,Xc,Ts,Ta,n1,n2
+//--------------two-junction, two-contact-----------------
+// optimization: two-junction, two-contact current
+Function wdJ_2junc_2cont(wPars,dV)
+	Wave wPars
+	Variable dV
+
+	variable Xc=wPars[0]
+	variable Ts=wPars[1]
+	variable Ta=wPars[2]	
+	variable n1=wPars[3]
+	variable n2=wPars[4]
+	variable Eg1=wPars[5]
+	variable Eg2=wPars[6]
+	variable Ec=wPars[7]
+	variable V=wPars[8]
+
+	variable V1=(V-dV)/2,V2=(V+dV)/2
+	variable J1=J_1junc(V1,Eg1,Eg2,Xc,Ts,Ta,n1)
+	variable J2=J_1junc(V2,Eg2,Ec,Xc,Ts,Ta,n2)
+	return J1-J2
+End
+
+//two-junction, two-contact current absorbing within [E1,E2] and [E2,inf]
+function find_dV_2junc_2cont(Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2,V)
+Variable Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2,V
+
+	string sP="root:"
+	Make/D/O/N=9 $sP+"tempPars"/wave=wTempPars
+	wTempPars[0]=Xc
+	wTempPars[1]=Ts
+	wTempPars[2]=Ta
+	wTempPars[3]=n1 //n1
+	wTempPars[4]=n2 //n2
+	wTempPars[5]=Eg1
+	wTempPars[6]=Eg2
+	wTempPars[7]=Ec
+	wTempPars[8]=V
+
+	Make/D/O/N=1 $sP+"tempData"/wave=wTempData
+	wTempData[0]=0
+
+	FindRoots/X=wTempData wdJ_2junc_2cont,wTempPars
+	KillWaves $sP+"tempData"
+
+	variable dV=V_root
+	return dV
+End
+
+function doFind_dV_2junc_2cont()
+
+	string sP="root:"	
+	wave wPars=$sP+"pars_2junc_2cont"
+
+	variable Xc=wPars[0]
+	variable Ts=wPars[1]
+	variable Ta=wPars[2]	
+	variable n1=wPars[3]
+	variable n2=wPars[4]
+	variable Eg1=wPars[5]
+	variable Eg2=wPars[6]
+	variable Ec=wPars[7]
+	variable V=wPars[8]
+
+	variable dV=find_dV_2junc_2cont(Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2,V)
+	variable V1=(V-dV)/2,V2=(V+dV)/2	
+	variable J=J_1junc(V1,Eg1,Eg2,Xc,Ts,Ta,n1)	
 	
-	variable J=0	
-	variable V1=E1/2
-	variable dV1=0.01
-	variable alpha=0.5
-	variable J1=J_1junc(V1,E1,E2,Xc,Ts,Ta,n1)
-	variable J2=J_1junc(V-V1,E2,100,Xc,Ts,Ta,n2)			
-	variable dJ=J1-J2
-
-	variable iter=0
-	do
-		variable V1_plus=V1+dV1/2
-		J1=J_1junc(V1_plus,E1,E2,Xc,Ts,Ta,n1)
-		J2=J_1junc(V-V1_plus,E2,100,Xc,Ts,Ta,n2)
-		variable dJ_plus=J1-J2
-		
-		variable V1_minus=V1-dV1/2
-		J1=J_1junc(V1_minus,E1,E2,Xc,Ts,Ta,n1)
-		J2=J_1junc(V-V1_minus,E2,100,Xc,Ts,Ta,n2)
-		variable dJ_minus=J1-J2
-		
-		variable improved=0
-		if(dJ>0)
-			if(abs(dJ_plus)<abs(dJ))
-				V1=V1_plus
-				dJ=dJ_plus
-				improved=1
-			elseif(abs(dJ_minus)<abs(dJ))
-				V1=V1_minus
-				dJ=dJ_minus
-				improved=1
-			endif
-		else		
-			if(abs(dJ_minus)<abs(dJ))
-				V1=V1_minus
-				dJ=dJ_minus
-				improved=1
-			elseif(abs(dJ_minus)<abs(dJ))
-				V1=V1_plus
-				dJ=dJ_plus
-				improved=1
-			endif
-		endif
-		
-		if(improved)
-			dV1=dV1*1.5
-		else
-			dV1=dV1/2
-		endif
-		
-		iter+=1					
-	while((abs(dV1)>1e-18)&&(iter<1000))
-	if(iter >1000)
-		Print "J: no convergence on iter", iter
-	endif
-	return J_1junc(V1,E1,E2,Xc,Ts,Ta,n1)
+	wPars[9]=J
+	wPars[10]=V*J
+	wPars[11]=V1
+	wPars[12]=V1*J
+	wPars[13]=V2
+	wPars[14]=V2*J
 End
 
-//
-Function find_Vmax_2junc_2cont(E1,E2,Xc,Ts,Ta,n1,n2)
-Variable E1,E2,Xc,Ts,Ta,n1,n2
-
-	variable V=E1+(E2-E1)/2	
-	variable dV=1e-3
-	
-	variable Pmax=V*J_V_2junc_2cont(V,E1,E2,Xc,Ts,Ta,n1,n2)
-		
-	variable iter=0
-	do
-		variable Vplus=V+dV
-		variable Pplus=Vplus*J_V_2junc_2cont(Vplus,E1,E2,Xc,Ts,Ta,n1,n2)
-
-		variable Vminus=V-dV
-		variable Pminus=Vminus*J_V_2junc_2cont(Vminus,E1,E2,Xc,Ts,Ta,n1,n2)
-	
-		variable improved=0
-		if(Pplus>Pmax)
-			V=Vplus
-			Pmax=Pplus
-			improved=1
-		endif
-		if(Pminus>Pmax)
-			V=Vminus
-			Pmax=Pminus
-			improved=1
-		endif
-		
-		if(improved)
-			dV=dV*1.5
-		else
-			dV=dV/2
-		endif
-		
-		iter+=1
-	while((dV>1e-8 )&&(iter<400))
-	if(iter >1000)
-		Print "V: no convergence on iter", iter
-	endif
-	return V
-End
-
-Function find_Pmax_2junc_2cont(E1,E2,Xc,Ts,Ta,n1,n2)
-Variable E1,E2,Xc,Ts,Ta,n1,n2
-
-	variable Pref=Ptot(Xc,Ts)
-	variable Pm=0,eta=0
-	if(E1<E2)
-		variable Vm=find_Vmax_2junc_2cont(E1,E2,Xc,Ts,Ta,n1,n2)
-		variable Jm=J_V_2junc_2cont(Vm,E1,E2,Xc,Ts,Ta,n1,n2)
-		Pm=Vm*Jm
-		eta=Pm/Pref
-		Print "E1, E2: ",E1,E2,", J, V, P, eta: ",Jm,Vm,Pm,eta
-	else
-		 Print "E1>=E2: ",E1,E2,", J, V, P, eta: ",0,0,Pm,eta
-	endif
-	return Pm
-End
-
-Function find_Pmax_2junc_4cont(E1,E2,Xc,Ts,Ta,n1,n2)
-Variable E1,E2,Xc,Ts,Ta,n1,n2
-
-	variable Pref=Ptot(Xc,Ts)
-	variable P1m=0,P2m=0
-	variable Pm=0,eta=0
-	if(E1<E2)
-		variable V1m=findV_maxP_1junc(E1,E2,Xc,Ts,Ta,n1,0.7)
-		variable J1m=J_1junc(V1m,E1,E2,Xc,Ts,Ta,n1)
-		P1m=V1m*J1m
-	endif
-	
-	variable V2m=findV_maxP_1junc(E2,100,Xc,Ts,Ta,n2,0.7)
-	variable J2m=J_1junc(V2m,E2,100,Xc,Ts,Ta,n2)
-	P2m=V2m*J2m
-
-	Pm=P1m+P2m
-	eta=Pm/Pref
-	Print "E1, E2: ",E1,E2,", P1, P2, Ptot, eta: ",P1m,P2m,Pm,eta
-
-	return Pm
-End
-
-Function wFind_Pmax_2junc_2cont(wParams,E1,E2)
-	Wave wParams
-	Variable E1,E2
-	
-	variable Xc=wParams[0]
-	variable Ts=wParams[1]
-	variable Ta=wParams[2]
-	variable n1=wParams[3]
-	variable n2=wParams[4]
-	
-	return find_Pmax_2junc_2cont(E1,E2,Xc,Ts,Ta,n1,n2)
-End
-
-Function wFind_Pmax_2junc_4cont(wParams,E1,E2)
-	Wave wParams
-	Variable E1,E2
-	
-	variable Xc=wParams[0]
-	variable Ts=wParams[1]
-	variable Ta=wParams[2]
-	variable n1=wParams[3]
-	variable n2=wParams[4]
-	
-	return find_Pmax_2junc_4cont(E1,E2,Xc,Ts,Ta,n1,n2)
-End
-
-Macro calculate_two_contact()
-	P_2cont=wFind_Pmax_2junc_2cont(params_2cont,x,y)
-End
-
-Macro calculate_four_contact()
-	P_4cont=wFind_Pmax_2junc_4cont(params_4cont,x,y)
-End
-
-Macro optimize_two_contact()
-	Optimize/A/X=opt_2cont/S=1 wFind_Pmax_2junc_2cont,params_2cont
-End
-
-Macro optimize_four_contact()
-	Optimize/A/X=opt_4cont/S=1 wFind_Pmax_2junc_4cont,params_4cont
+Macro current_2junction_2contact()
+	doFind_dV_2junc_2cont()
 End
