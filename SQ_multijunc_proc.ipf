@@ -462,3 +462,89 @@ End
 Macro max_power_2junction_2contact()
 	doFind_Vmax_2junc_2cont()
 End
+
+//--------------find optimal Eg1,Eg2: two-junction, two-contact-----------------
+// optimization: two-junction, two-contact Eg1, Eg2
+Function wPmax_Eg_2junc_2cont(wPars,Eg1,Eg2)
+	Wave wPars
+	Variable Eg1,Eg2
+
+	variable Xc=wPars[0]
+	variable Ts=wPars[1]
+	variable Ta=wPars[2]	
+	variable n1=wPars[3]
+	variable n2=wPars[4]
+	variable Ec=wPars[7]
+
+	variable V=find_Vmax_2junc_2cont(Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2)
+	variable dV=find_dV_2junc_2cont(Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2,V)
+	variable V1=(V-dV)/2,V2=(V+dV)/2
+	variable J=J_1junc(V1,Eg1,Eg2,Xc,Ts,Ta,n1)	
+	variable P=V*J	
+	return P
+End
+
+//two-junction, two-contact current absorbing within [E1,E2] and [E2,inf]
+function find_Pmax_Eg_2junc_2cont(Ec,Xc,Ts,Ta,n1,n2)
+Variable Ec,Xc,Ts,Ta,n1,n2
+
+	string sP="root:"
+	Make/D/O/N=8 $sP+"tempPars"/wave=wTempPars
+	wTempPars[0]=Xc
+	wTempPars[1]=Ts
+	wTempPars[2]=Ta
+	wTempPars[3]=n1 //n1
+	wTempPars[4]=n2 //n2
+	wTempPars[7]=Ec
+
+	Make/D/O/N=2 $sP+"tempData3"/wave=wTempData
+	wTempData[0]=0.9
+	wTempData[1]=1.7
+
+	Optimize/A/X=wTempData/S=1 wPmax_Eg_2junc_2cont,wTempPars
+	variable Eg1=wTempData[0]
+	variable Eg2=wTempData[1]
+	KillWaves wTempData
+
+	Make/D/O/N=2 $sP+"result2"/wave=wResult
+	
+	wResult[0]=Eg1
+	wResult[1]=Eg2
+End
+
+function doFind_Pmax_Eg_2junc_2cont()
+
+	string sP="root:"	
+	wave wPars=$sP+"pars_2junc_2cont"
+
+	variable Xc=wPars[0]
+	variable Ts=wPars[1]
+	variable Ta=wPars[2]	
+	variable n1=wPars[3]
+	variable n2=wPars[4]
+	variable Ec=wPars[7]
+
+	find_Pmax_Eg_2junc_2cont(Ec,Xc,Ts,Ta,n1,n2)
+	wave wResult=$sP+"result2"
+	variable Eg1=wResult[0]
+	variable Eg2=wResult[1]
+
+	variable V=find_Vmax_2junc_2cont(Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2)
+	variable dV=find_dV_2junc_2cont(Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2,V)
+	variable V1=(V-dV)/2,V2=(V+dV)/2	
+	variable J=J_1junc(V1,Eg1,Eg2,Xc,Ts,Ta,n1)	
+	
+	wPars[5]=Eg1
+	wPars[6]=Eg2
+	wPars[8]=V
+	wPars[9]=J
+	wPars[10]=V*J
+	wPars[11]=V1
+	wPars[12]=V1*J
+	wPars[13]=V2
+	wPars[14]=V2*J
+End
+
+Macro opt_bandgaps_2junction_2contact()
+	doFind_Pmax_Eg_2junc_2cont()
+End
