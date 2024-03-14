@@ -210,7 +210,7 @@ Variable Xc,Ts
 	NVAR vTheta_s=root:theta_s //sun semi-angle
 	variable fs=sin(vTheta_s)^2
 
-	return Xc*fs*Lr_E(30,Ts)
+	return Xc*fs*Lr_E(100,Ts)
 End
 
 //--------------single-junction-----------------
@@ -407,7 +407,7 @@ Function wP_2junc_2cont(wPars,V)
 End
 
 //two-junction, two-contact current absorbing within [E1,E2] and [E2,inf]
-function find_Vmax_2junc_2cont(Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2)
+function find_V_at_Pmax_2junc_2cont(Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2)
 Variable Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2
 
 	string sP="root:"
@@ -431,7 +431,7 @@ Variable Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2
 	return Vm
 End
 
-function doFind_Vmax_2junc_2cont()
+function doFind_V_at_Pmax_2junc_2cont() 
 
 	string sP="root:"	
 	wave wPars=$sP+"pars_2junc_2cont"
@@ -445,7 +445,7 @@ function doFind_Vmax_2junc_2cont()
 	variable Eg2=wPars[6]
 	variable Ec=wPars[7]
 
-	variable V=find_Vmax_2junc_2cont(Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2)
+	variable V=find_V_at_Pmax_2junc_2cont(Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2)
 	variable dV=find_dV_2junc_2cont(Eg1,Eg2,Ec,Xc,Ts,Ta,n1,n2,V)
 	variable V1=(V-dV)/2,V2=(V+dV)/2	
 	variable J=J_1junc(V1,Eg1,Eg2,Xc,Ts,Ta,n1)	
