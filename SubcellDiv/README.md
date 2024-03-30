@@ -22,15 +22,15 @@ Find $f$ for maximum power:
 &ensp; $0 = -\frac{n_1kT}{q}  \cdot I \cdot (\frac{I_p}{(1-f)\cdot I_p - I+I_{0,1}})
 +\frac{n_2kT}{q}  \cdot I \cdot (\frac{I_p}{f\cdot I_p - I+I_{0,2}})$
 
-Find $f$ and $1-f$:
-
-&ensp; $f=(\frac{n_2}{n_1+n_2}) + (\frac{n_2-n_1}{n_1+n_2})\cdot\frac{I}{I_p}
-+(\frac{n_2}{n_1+n_2})\cdot \frac{I_{0,1}}{I_p}
--(\frac{n_1}{n_1+n_2})\cdot \frac{I_{0,2}}{I_p}$
+Find $1-f$ and $f$:
 
 &ensp; $1-f=(\frac{n_1}{n_1+n_2}) - (\frac{n_2-n_1}{n_1+n_2})\cdot\frac{I}{I_p}
 -(\frac{n_2}{n_1+n_2})\cdot \frac{I_{0,1}}{I_p}
 +(\frac{n_1}{n_1+n_2})\cdot \frac{I_{0,2}}{I_p}$
+
+&ensp; $f=(\frac{n_2}{n_1+n_2}) + (\frac{n_2-n_1}{n_1+n_2})\cdot\frac{I}{I_p}
++(\frac{n_2}{n_1+n_2})\cdot \frac{I_{0,1}}{I_p}
+-(\frac{n_1}{n_1+n_2})\cdot \frac{I_{0,2}}{I_p}$
 
 The photocurrents are
 
