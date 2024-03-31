@@ -1,7 +1,7 @@
 
 Consider a series-connected multijunction device. The voltage across cell $i$ is
 
-&ensp; $V_i(I)=\frac{n_ikT}{q}  \cdot \ln(\frac{I_{p_i} - I}{I_{0_1}} + 1)$
+&ensp; $V_i(I)=\frac{n_ikT}{q}  \cdot \ln(\frac{I_{p_i} - I}{I_{0_i}} + 1)$
 
 The total power is
 
