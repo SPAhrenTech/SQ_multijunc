@@ -1,4 +1,7 @@
 
+The optimization for maximum power of the partionining among constituent subcells of the total photocurrent available to a series-connected tandem can be performed simultaneously with the determination of the operating point for maximum power. In fact, the optimal photocurrent partitioning can be evaluated for any specified operating current, allowing determination of the maximum power point by variation of the device current as a single parameter. Some insight is gained by displaying the I-V curves for the individual subcells with that of the tandem device.
+In the optimal configuration, more photocurrent should be allocated to subcells with larger ideality factor, due to the larger increase in voltage across those subcells. Differences in subcell dark currents have little effect on the optimal partitioning of photocurrent for the tandem device.
+
 Consider a series-connected multijunction device. The voltage across cell $i$ is
 
 &ensp; $V_i(I)=\frac{n_ikT}{q}  \cdot \ln(\frac{I_{p_i} - I}{I_{0_i}} + 1)$
